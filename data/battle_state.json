@@ -1,0 +1,44 @@
+{
+  "version": 1,
+  "battles": {
+    "1547477318736289883": {
+      "guild_id": 1547477318736289883,
+      "channel_id": 1547477319369760822,
+      "message_id": 1547867669770936402,
+      "main_image_url": null,
+      "status": "completed",
+      "current_round": 1,
+      "players": {
+        "1156452812394352690": {
+          "user_id": 1156452812394352690,
+          "username": "somdipdas",
+          "display_name": "\u023a\u2112\u1909\u1763 | Versa",
+          "avatar_url": "https://cdn.discordapp.com/avatars/1156452812394352690/1a76050ef6c8ce24a0cba7411f3f3d48.png?size=1024",
+          "submission": "Ichigo",
+          "won": false,
+          "eliminated": true,
+          "current_round": 1
+        },
+        "1086661549298548767": {
+          "user_id": 1086661549298548767,
+          "username": "robtoback",
+          "display_name": "\u05b6\u05b8\u2756S\u1d07ishir\u014d N\u03b1gi\u30e1\u2122",
+          "avatar_url": "https://cdn.discordapp.com/avatars/1086661549298548767/0967dc2866ed943c33606509621cde61.png?size=1024",
+          "submission": "Dancer",
+          "won": true,
+          "eliminated": false,
+          "current_round": 1
+        }
+      },
+      "current_matches": [],
+      "bye_players": [],
+      "winners": [
+        1086661549298548767
+      ],
+      "eliminated_players": [
+        1156452812394352690
+      ],
+      "champion_id": 1086661549298548767
+    }
+  }
+}

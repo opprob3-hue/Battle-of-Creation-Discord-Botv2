@@ -41,17 +41,43 @@ _POWER_WORDS = {
     "warrior",
 }
 _CHAOS_WORDS = {"chaos", "cat", "funny", "meow", "monster", "nine", "tail", "tails"}
+_GENERIC_ROLES = {
+    "animal",
+    "baby",
+    "cat",
+    "child",
+    "dancer",
+    "dog",
+    "farmer",
+    "fighter",
+    "human",
+    "person",
+    "soldier",
+    "student",
+    "teacher",
+    "worker",
+}
+
+
+def _is_generic_role(submission: str) -> bool:
+    """Return whether a submission is only an ordinary role or broad noun."""
+    words = re.findall(r"[a-z0-9]+", submission.casefold())
+    return bool(words) and len(words) <= 3 and all(word in _GENERIC_ROLES for word in words)
 
 
 def _score(player: Player) -> tuple[int, int]:
     """Score only explicit capability signals, never writing quality or length."""
     words = re.findall(r"[a-z0-9]+", player.submission.lower())
     capability_signal = sum(4 for word in words if word in _POWER_WORDS)
+    # A generic role has no special feats by itself. This prevents the local
+    # fallback from selecting an ordinary "dancer" over an identifiable entity
+    # merely because the latter's name contains no capability keywords.
+    generic_penalty = -8 if _is_generic_role(player.submission) else 0
     # A stable tie-breaker makes the no-AI judge reproducible after a restart.
     tie_break = int(hashlib.sha256(
         f"{player.user_id}:{player.submission.casefold()}".encode("utf-8")
     ).hexdigest()[:8], 16) % 7
-    return capability_signal, tie_break
+    return capability_signal + generic_penalty, tie_break
 
 
 def _submission_signal(submission: str) -> str:
@@ -163,6 +189,11 @@ Research instructions:
   other real/canonical thing.
 - Search the exact submitted name first, then search the name plus feats,
   abilities, specifications, accomplishments, or documented capabilities.
+- Treat a generic role or broad noun by itself (for example "dancer",
+  "student", "person", "cat", or "object") as an ordinary real-world entity,
+  not as a secretly powerful fictional character. It can only become a
+  specific fictional or exceptional identity if the submission clearly names
+  that identity or states the relevant feats.
 - Prefer reliable primary, official, encyclopedic, or otherwise well-supported
   sources. Ignore fan exaggeration, unsupported claims, and search-result
   wording that only repeats the submission.
@@ -177,6 +208,8 @@ Research instructions:
   matchup advantages, and relevant limitations.
 - Description length, word count, grammar, writing quality, and level of detail
   must never count as evidence or an advantage. A short submission can win.
+- Never award a win to a generic role over a clearly identifiable character or
+  entity solely because the generic role was described more favorably.
 
 Response rules:
 - Choose exactly one winner. The winner must be either "one" or "two".
@@ -221,6 +254,13 @@ Response rules:
         elif winner_choice == "two":
             winner, loser = player_two, player_one
         else:
+            return local_judgement
+        if _is_generic_role(winner.submission) and not _is_generic_role(loser.submission):
+            LOGGER.warning(
+                "Rejected generic-role AI winner %r over identifiable submission %r",
+                winner.submission,
+                loser.submission,
+            )
             return local_judgement
         reason = _ensure_both_submissions_in_reason(raw_reason, winner, loser)
         if len(reason) < 30:

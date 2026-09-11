@@ -9,6 +9,7 @@ import re
 from dataclasses import dataclass
 
 from google import genai
+from google.genai import interactions as gemini_interactions
 from google.genai import types
 
 from .models import Player
@@ -230,22 +231,35 @@ Response rules:
                 ),
             )
             try:
-                response = await client.aio.models.generate_content(
-                    model="gemini-3.6-flash",
-                    contents=prompt,
-                    config=types.GenerateContentConfig(
-                        response_mime_type="application/json",
-                        max_output_tokens=8192,
-                        tools=[
-                            types.Tool(
-                                google_search=types.GoogleSearch(),
-                            )
-                        ],
-                    ),
+                interaction = await client.aio.interactions.create(
+                    model="gemini-3.8-flash",
+                    input=prompt,
+                    response_format={
+                        "type": "text",
+                        "mime_type": "application/json",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "winner": {
+                                    "type": "string",
+                                    "enum": ["one", "two"],
+                                },
+                                "reason": {"type": "string"},
+                            },
+                            "required": ["winner", "reason"],
+                            "additionalProperties": False,
+                        },
+                    },
+                    generation_config={"max_output_tokens": 8192},
+                    tools=[
+                        gemini_interactions.GoogleSearch(
+                            search_types=["web_search"],
+                        )
+                    ],
                 )
             finally:
                 await client.aio.aclose()
-        content = response.text or ""
+        content = interaction.output_text or ""
         data = json.loads(content)
         winner_choice = str(data.get("winner", "")).lower().strip()
         raw_reason = str(data.get("reason", "")).strip()

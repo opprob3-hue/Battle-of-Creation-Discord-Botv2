@@ -44,15 +44,14 @@ _CHAOS_WORDS = {"chaos", "cat", "funny", "meow", "monster", "nine", "tail", "tai
 
 
 def _score(player: Player) -> tuple[int, int]:
+    """Score only explicit capability signals, never writing quality or length."""
     words = re.findall(r"[a-z0-9]+", player.submission.lower())
-    power = sum(4 for word in words if word in _POWER_WORDS)
-    creative = min(len(set(words)), 8)
-    length_signal = min(len(player.submission.strip()), 40) // 8
+    capability_signal = sum(4 for word in words if word in _POWER_WORDS)
     # A stable tie-breaker makes the no-AI judge reproducible after a restart.
     tie_break = int(hashlib.sha256(
         f"{player.user_id}:{player.submission.casefold()}".encode("utf-8")
     ).hexdigest()[:8], 16) % 7
-    return power + creative + length_signal, tie_break
+    return capability_signal, tie_break
 
 
 def _submission_signal(submission: str) -> str:
@@ -61,11 +60,7 @@ def _submission_signal(submission: str) -> str:
         return "stronger battle-ready wording"
     if any(word in _CHAOS_WORDS for word in words):
         return "a memorable chaos factor"
-    if len(set(words)) >= 3:
-        return "a more detailed concept"
-    if len(submission) >= 12:
-        return "a clearer overall identity"
-    return "a sharp, instantly readable identity"
+    return "the clearer explicit capability signal"
 
 
 def _variant_index(player_one: Player, player_two: Player, round_number: int) -> int:
@@ -152,21 +147,44 @@ async def judge_match_with_ai(
         return local_judgement
 
     prompt = f"""
-You are the judge for a friendly Discord tournament called Battle of Creation.
-Compare these two submissions and choose a winner. Use general knowledge when
-helpful, but do not invent precise facts you are unsure about.
+You are the evidence-based judge for a friendly Discord tournament called Battle
+of Creation. Compare two submissions and choose who would win in a neutral
+one-on-one matchup.
 
-Submission one: {player_one.submission}
-Submission two: {player_two.submission}
+Submission one:
+{player_one.submission}
 
-Rules:
+Submission two:
+{player_two.submission}
+
+Research instructions:
+- Use Google Search to identify each submission when it refers to a known
+  character, real person, creature, object, technology, historical subject, or
+  other real/canonical thing.
+- Search the exact submitted name first, then search the name plus feats,
+  abilities, specifications, accomplishments, or documented capabilities.
+- Prefer reliable primary, official, encyclopedic, or otherwise well-supported
+  sources. Ignore fan exaggeration, unsupported claims, and search-result
+  wording that only repeats the submission.
+- If a submission is original, ambiguous, or has no trustworthy search results,
+  use only the abilities and feats explicitly stated in that submission. For a
+  normal real object, animal, or person, use realistic capabilities.
+- Do not invent powers, feats, equipment, transformations, or versions.
+- Use the strongest clearly established standard version only when the identity
+  is unambiguous. If versions conflict, state the conservative interpretation.
+- Decide from overall demonstrated feats and capabilities: attack power,
+  durability, speed, range, abilities, intelligence, experience, stamina,
+  matchup advantages, and relevant limitations.
+- Description length, word count, grammar, writing quality, and level of detail
+  must never count as evidence or an advantage. A short submission can win.
+
+Response rules:
 - Choose exactly one winner. The winner must be either "one" or "two".
 - Write one fresh reason of 2-4 sentences.
-- Make the reason approximately 50% logical comparison and 50% playful humor.
 - Mention both exact submission names in the reason.
-- Explain why the winner has the advantage in this specific matchup.
+- Explain the decisive feat or capability advantage in this matchup.
+- Make the reason roughly half logical comparison and half playful humor.
 - Be friendly. No hateful, discriminatory, threatening, or genuinely insulting content.
-- Do not reuse a stock sentence or say "it is stronger overall" without explaining why.
 - Return only valid JSON: {{"winner":"one"|"two","reason":"..."}}
 """
 
@@ -185,6 +203,11 @@ Rules:
                     config=types.GenerateContentConfig(
                         response_mime_type="application/json",
                         max_output_tokens=8192,
+                        tools=[
+                            types.Tool(
+                                google_search=types.GoogleSearch(),
+                            )
+                        ],
                     ),
                 )
             finally:

@@ -1,2 +1,1 @@
 - [Discord bot runtime](discord-bot-runtime.md) — Keep the bot on a continuously running workflow and accept the project’s canonical secret name.
-- [Gemini judge runtime](gemini-judge-runtime.md) — Direct Gemini keys may require a current model and available quota before grounded judging can run.

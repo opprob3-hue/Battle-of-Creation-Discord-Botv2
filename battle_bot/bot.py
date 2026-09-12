@@ -380,7 +380,7 @@ class BattleBot(commands.Bot):
         )
         winner = state.players[judgement.winner_id]
         loser = state.players[judgement.loser_id]
-        await self._finish_match(state, battle_match, winner, loser, judgement.reason)
+        await self._finish_match(state, battle_match, winner, loser, judgement.reason, judgement.source)
 
     async def _finish_match(
         self,
@@ -389,6 +389,7 @@ class BattleBot(commands.Bot):
         winner: Player,
         loser: Player,
         reason: str,
+        judge_source: str = "system",
     ) -> None:
         battle_match.status = "done"
         battle_match.winner_id = winner.user_id
@@ -406,11 +407,17 @@ class BattleBot(commands.Bot):
             )
         else:
             reason_text = reason
+        judge_label = {
+            "gemini": "Gemini",
+            "local": "Local fallback",
+            "system": "System",
+        }.get(judge_source, "Unknown")
         embed = discord.Embed(
             title=f"🏆 Round {battle_match.round_number} Result",
             description=(
                 f"{mention(winner.user_id)}\n**{safe_text(winner.submission)}**\n\n"
                 "**Winner!**\n\n"
+                f"**Judge:** {judge_label}\n\n"
                 f"**Reason:** {safe_text(reason_text, 1000)}"
             ),
             color=discord.Color.gold(),

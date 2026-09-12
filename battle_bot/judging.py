@@ -203,11 +203,10 @@ Response rules:
                 ),
             )
             try:
-                response = await client.aio.interactions.create(
-                    model=GEMINI_MODEL,
-                    input=prompt,
-                    tools=[{"type": "google_search"}],
-                    response_format={
+                request_kwargs = {
+                    "model": GEMINI_MODEL,
+                    "input": prompt,
+                    "response_format": {
                         "type": "text",
                         "mime_type": "application/json",
                         "schema": {
@@ -223,7 +222,22 @@ Response rules:
                             "additionalProperties": False,
                         },
                     },
-                )
+                }
+                try:
+                    response = await client.aio.interactions.create(
+                        **request_kwargs,
+                        tools=[{"type": "google_search"}],
+                    )
+                except Exception as grounded_error:
+                    error_text = str(grounded_error).lower()
+                    quota_markers = ("quota", "429", "too_many_requests", "rate limit")
+                    if not any(marker in error_text for marker in quota_markers):
+                        raise
+                    LOGGER.warning(
+                        "Gemini Search grounding hit quota; retrying without Search: %s",
+                        type(grounded_error).__name__,
+                    )
+                    response = await client.aio.interactions.create(**request_kwargs)
             finally:
                 await client.aio.aclose()
         content = getattr(response, "output_text", "") or ""

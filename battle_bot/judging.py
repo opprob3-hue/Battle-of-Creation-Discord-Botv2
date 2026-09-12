@@ -15,7 +15,8 @@ from .models import Player
 from .settings import AI_JUDGE_TIMEOUT_SECONDS
 
 
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.6-flash")
+# MODEL_NAME is the primary deployment setting; GEMINI_MODEL remains supported.
+GEMINI_MODEL = os.getenv("MODEL_NAME") or os.getenv("GEMINI_MODEL") or "gemini-3.8-flash"
 
 
 LOGGER = logging.getLogger("battle_of_creation.judging")

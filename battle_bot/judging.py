@@ -62,10 +62,10 @@ def _score(player: Player) -> tuple[int, int]:
 def _submission_signal(submission: str) -> str:
     words = re.findall(r"[a-z0-9]+", submission.lower())
     if any(word in _POWER_WORDS for word in words):
-        return "stronger battle-ready wording"
+        return "battle-ready power and pressure"
     if any(word in _CHAOS_WORDS for word in words):
-        return "a memorable chaos factor"
-    return "the clearer explicit capability signal"
+        return "unpredictable chaos and surprise value"
+    return "the clearest stated matchup advantage"
 
 
 def _variant_index(player_one: Player, player_two: Player, round_number: int) -> int:
@@ -103,40 +103,32 @@ def judge_match(
     else:
         winner, loser = player_two, player_one
 
-    winner_submission = winner.submission
-    loser_submission = loser.submission
-    signal = _submission_signal(winner_submission)
+    signal = _submission_signal(winner.submission)
     close = abs(sum(score_one) - sum(score_two)) <= 2
-    logical = (
-        f"{winner_submission} gets the edge over {loser_submission} because it showed "
-        f"{signal} and a stronger overall matchup profile."
+    margin = "by the slimmest possible margin" if close else "with a clear matchup edge"
+    fallback_reasons = (
+        f"{winner.submission} beats {loser.submission} {margin} because it showed {signal}. "
+        f"By decree of the arena's extremely unbiased royal court, {loser.submission} may now appeal to the nearest wall 😭",
+        f"The evidence on the card favors {winner.submission} over {loser.submission}: {signal} is the deciding factor. "
+        f"The lord of the bracket has spoken, and {loser.submission}'s victory speech has been postponed indefinitely 👑",
+        f"{winner.submission} takes the crown from {loser.submission} on {signal}; that is the only matchup evidence this fallback judge can safely use. "
+        f"A tragic day for {loser.submission}, whose royal entrance had excellent production value but no winning clause 😭",
+        f"In this round, {winner.submission} had {signal}, while {loser.submission} brought enough chaos to make the scoreboard nervous. "
+        f"Unfortunately, the throne is occupied and the crown is refusing visitors 👑",
+        f"The stated abilities give {winner.submission} the advantage over {loser.submission}, especially through {signal}. "
+        f"The court considered a retrial, then remembered it enjoys being dramatically correct 😭",
+        f"{winner.submission} wins this clash with {signal} against {loser.submission}; the matchup was {"painfully close" if close else "decisively tilted"}. "
+        f"Still, the royal scoreboard has issued its ruling, and complaints must be submitted in triplicate 👑",
+        f"{winner.submission} clears {loser.submission} because {signal} matters more here than pure theatrical confidence. "
+        f"The defeated side may keep its dignity, its soundtrack, and absolutely none of the crown 😭",
+        f"The card gives {winner.submission} the win over {loser.submission} through {signal}. "
+        f"Somewhere, a sarcastic monarch is whispering, 'A bold strategy—shame it lost' 👑",
+        f"{winner.submission} edges past {loser.submission} on the matchup evidence: {signal}. "
+        f"The arena's noble committee has ruled that dramatic posing is not, by itself, a legal victory condition 😭",
+        f"The lore available on the card gives {winner.submission} the advantage over {loser.submission} through {signal}. "
+        f"The crown has chosen its champion, and {loser.submission} has been invited to leave through the extremely ceremonial side door 👑",
     )
-    funny_bits = (
-        "The judge gave it the tiny crown and told the other choice to update its "
-        "battle résumé 😭",
-        "Basically, the arena heard that submission and immediately turned the "
-        "dramatic music up 😭",
-        "The loser still had serious main-character energy, but the scoreboard "
-        "had already chosen violence—in the harmless tournament sense 😭",
-        "One choice brought the strategy; the other accidentally brought a very "
-        "confident reaction image 😭",
-        "The matchup was close enough to need a replay, but the winner's imaginary "
-        "entrance fireworks settled the argument 😭",
-        "That is the sort of result that makes the defeated submission stare at "
-        "the bracket like it has personally betrayed them 😭",
-        "The winner walked in with a plan; the loser walked in with excellent "
-        "plot-twist potential 😭",
-        "The arena committee has reviewed the evidence and confiscated the loser's "
-        "victory music for now 😭",
-    )
-    funny = funny_bits[_variant_index(player_one, player_two, round_number)]
-    reason = f"{logical} {funny}"
-    if close:
-        reason = (
-            f"{winner_submission} narrowly edges {loser_submission}: {signal} gave it "
-            f"the logical advantage, even though both choices made this a genuinely "
-            f"close call. {funny}"
-        )
+    reason = fallback_reasons[_variant_index(player_one, player_two, round_number)]
     return Judgement(winner_id=winner.user_id, loser_id=loser.user_id, reason=reason, source="local")
 
 
@@ -189,8 +181,11 @@ Response rules:
 - Write one fresh reason of 2-4 sentences.
 - Mention both exact submission names in the reason.
 - Explain the decisive feat or capability advantage in this matchup.
-- Make the reason roughly half logical comparison and half playful humor.
-- Be friendly. No hateful, discriminatory, threatening, or genuinely insulting content.
+- The tone must be approximately 50% funny arena commentary, 30% sarcastic lord/royal roast, and 20% real lore or researched matchup evidence.
+- The real-lore portion must name a concrete feat, ability, limitation, or matchup fact; never invent lore. For original or ambiguous submissions, use only what the submission explicitly states.
+- The sarcastic lord tone should be witty and theatrical, never hateful, discriminatory, threatening, or genuinely cruel.
+- Write a fresh reason every time. Do not reuse sentence frames, generic scoreboard language, or filler jokes.
+- Never use these stale phrases: "clearer explicit capability signal", "stronger overall matchup profile", "narrowly edges", or "imaginary entrance fireworks".
 - Return only valid JSON: {{"winner":"one"|"two","reason":"..."}}
 """
 

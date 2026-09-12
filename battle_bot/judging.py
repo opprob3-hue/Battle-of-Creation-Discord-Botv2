@@ -201,7 +201,7 @@ Response rules:
                     model="gemini-2.5-flash",
                     contents=prompt,
                     config=types.GenerateContentConfig(
-                        response_mime_type="application/json",
+                        
                         max_output_tokens=8192,
                         tools=[
                             types.Tool(

@@ -28,6 +28,7 @@ class Judgement:
     winner_id: int
     loser_id: int
     reason: str
+    source: str = "local"
 
 
 _POWER_WORDS = {
@@ -136,7 +137,7 @@ def judge_match(
             f"the logical advantage, even though both choices made this a genuinely "
             f"close call. {funny}"
         )
-    return Judgement(winner_id=winner.user_id, loser_id=loser.user_id, reason=reason)
+    return Judgement(winner_id=winner.user_id, loser_id=loser.user_id, reason=reason, source="local")
 
 
 async def judge_match_with_ai(
@@ -148,6 +149,7 @@ async def judge_match_with_ai(
     local_judgement = judge_match(player_one, player_two, round_number)
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
+        LOGGER.warning("Gemini judge disabled: GEMINI_API_KEY is not set; using local judge")
         return local_judgement
 
     prompt = f"""
@@ -236,8 +238,9 @@ Response rules:
             return local_judgement
         reason = _ensure_both_submissions_in_reason(raw_reason, winner, loser)
         if len(reason) < 30:
+            LOGGER.warning("Gemini judge returned an invalid reason; using local judge")
             return local_judgement
-        return Judgement(winner_id=winner.user_id, loser_id=loser.user_id, reason=reason)
-    except Exception as error:
-        LOGGER.warning("AI judge unavailable; using local judge: %s", type(error).__name__)
+        return Judgement(winner_id=winner.user_id, loser_id=loser.user_id, reason=reason, source="gemini")
+    except Exception:
+        LOGGER.exception("Gemini judge request failed; using local judge")
         return local_judgement

@@ -15,6 +15,9 @@ from .models import Player
 from .settings import AI_JUDGE_TIMEOUT_SECONDS
 
 
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.6-flash")
+
+
 LOGGER = logging.getLogger("battle_of_creation.judging")
 _AI_SEMAPHORE = asyncio.Semaphore(3)
 
@@ -197,22 +200,30 @@ Response rules:
                 ),
             )
             try:
-                response = await client.aio.models.generate_content(
-                    model="gemini-3.6-flash",
-                    contents=prompt,
-                    config=types.GenerateContentConfig(
-                        
-                        max_output_tokens=8192,
-                        tools=[
-                            types.Tool(
-                                google_search=types.GoogleSearch(),
-                            )
-                        ],
-                    ),
+                response = await client.aio.interactions.create(
+                    model=GEMINI_MODEL,
+                    input=prompt,
+                    tools=[{"type": "google_search"}],
+                    response_format={
+                        "type": "text",
+                        "mime_type": "application/json",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "winner": {
+                                    "type": "string",
+                                    "enum": ["one", "two"],
+                                },
+                                "reason": {"type": "string"},
+                            },
+                            "required": ["winner", "reason"],
+                            "additionalProperties": False,
+                        },
+                    },
                 )
             finally:
                 await client.aio.aclose()
-        content = response.text or ""
+        content = getattr(response, "output_text", "") or ""
         data = json.loads(content)
         winner_choice = str(data.get("winner", "")).lower().strip()
         raw_reason = str(data.get("reason", "")).strip()
